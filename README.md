@@ -12,6 +12,10 @@ in Job Recommendation},
 }
 ```
 
+## License
+
+The code and data is under the CC BY-NC 4.0 license.
+
 ## Structure
 
 You can find the code of the baselines in _code/baselines_. The binary splitter
