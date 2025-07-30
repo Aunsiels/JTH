@@ -73,7 +73,11 @@ def load_gold(path: Path, mode: str) -> Dict[Key, str]:
 
 def load_preds(path: Path) -> Dict[Key, List[str]]:
     with open(path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
+        try:
+            data = json.load(fh)
+        except json.decoder.JSONDecodeError as e:
+            print("Error decoding", path)
+            raise e
     items_ = {_parse_key(k): [_to_str(i) for i in v] for k, v in data.items()}
     return items_
 

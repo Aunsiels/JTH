@@ -28,12 +28,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 from pathlib import Path
 from typing import Dict, List, Sequence
 
 import numpy as np
 import pandas as pd
+
 
 # ---------------------------------------------------------------------------
 # CLI parsing
@@ -48,6 +50,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p.add_argument("--mode", choices=["c2j", "j2c"], default="c2j")
     p.add_argument("--seed", type=int, default=42)
     return p.parse_args(argv)
+
 
 # ---------------------------------------------------------------------------
 # Utility functions
@@ -73,12 +76,16 @@ def load_entities(path: Path, id_col: str) -> Dict[str, pd.Timestamp]:
 
     return dict(zip(df[id_col].astype(str), df["create_date"]))
 
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
     rng = random.Random(args.seed)
 
     cand_dates = load_entities(args.candidates, "candidate_id")
@@ -137,7 +144,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             return out
 
         ranked_ids = [*target_pool_ids[shuffle_ties(past_order)].tolist(),
-                       *target_pool_ids[shuffle_ties(future_order)].tolist()]
+                      *target_pool_ids[shuffle_ties(future_order)].tolist()]
 
         output[json.dumps([qid, ts_str])] = ranked_ids
 

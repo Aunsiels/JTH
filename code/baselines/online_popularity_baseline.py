@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Sequence
 
@@ -54,6 +55,9 @@ def build_ranked_list(pop_counts: Dict[str, int]) -> List[str]:
 
 def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
 
     train_df = pd.read_csv(args.train, dtype=str)
     test_df = pd.read_csv(args.test, dtype=str)

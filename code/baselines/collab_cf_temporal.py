@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os.path
 import random
 from collections import defaultdict
 from pathlib import Path
@@ -148,7 +149,9 @@ class CFState:
 
 def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
-    rng = random.Random(args.seed)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
 
     # Load datasets
     train_df = pd.read_csv(args.train, dtype=str)

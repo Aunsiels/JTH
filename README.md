@@ -11,7 +11,7 @@ It links **38 424 candidates**, **6 199 vacancies** and **45 546 multi-stage app
 All records are pseudonymised and released for **non-commercial research** under **CC BY-NC 4.0**.
 
 * **Home page / code**   [https://github.com/Aunsiels/JTH](https://github.com/Aunsiels/JTH)
-* **Download (zip, XXX MB)**   `XXX`   (DOI coming)
+* **Download (zip, 15 MB)**   `XXX`   (DOI coming)
 * **Contact**   [julien.romero@telecom-sudparis.eu](mailto:julien.romero@telecom-sudparis.eu)
 
 ---

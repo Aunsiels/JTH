@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 from typing import Dict, List, Sequence
 
@@ -67,6 +68,9 @@ def load_create_dates(path: Path, id_col: str) -> Dict[str, pd.Timestamp]:
 
 def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
 
     # Load metadata
     cand_dates = load_create_dates(args.candidates, "candidate_id")

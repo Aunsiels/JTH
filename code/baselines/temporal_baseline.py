@@ -35,12 +35,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 from pathlib import Path
 from typing import Dict, List, Sequence
 
 import numpy as np
 import pandas as pd
+
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -56,6 +58,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
                    help="'c2j' jobs→candidates (default) or 'j2c' candidates→jobs")
     p.add_argument("--seed", type=int, default=42, help="Seed for tie‑breaking shuffle")
     return p.parse_args(argv)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -84,12 +87,16 @@ def load_entities(path: Path, id_col: str) -> Dict[str, pd.Timestamp]:
 
     return dict(zip(df[id_col].astype(str), df["create_date"]))
 
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
     random.seed(args.seed)
 
     cand_dates = load_entities(args.candidates, "candidate_id")

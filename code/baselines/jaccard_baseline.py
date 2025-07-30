@@ -31,10 +31,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Dict, List, Sequence
 
 import pandas as pd
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -47,15 +49,19 @@ def parse_args(argv: Sequence[str] | None = None):
     ap.add_argument("test", type=Path)
     ap.add_argument("out", type=Path)
     ap.add_argument("--mode", choices=["c2j", "j2c"], default="c2j")
+    ap.add_argument("--use_human_features", action="store_true", default=False)
+    ap.add_argument("--use_llm_features", action="store_true", default=False)
     return ap.parse_args(argv)
 
 
 def parse_skills_column(series: pd.Series) -> pd.Series:
-    def to_set(val):
+    def to_list(val):
         if pd.isna(val) or val is None or str(val).strip() == "":
-            return set()
-        return {tok.strip().lower() for tok in str(val).split(";") if tok.strip()}
-    return series.apply(to_set)
+            return list()
+        return list({tok.strip().lower() for tok in str(val).split(";") if tok.strip()})
+
+    return series.apply(to_list)
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -63,15 +69,36 @@ def parse_skills_column(series: pd.Series) -> pd.Series:
 
 def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
 
-    cand_df = pd.read_csv(args.candidates, dtype=str, usecols=["candidate_id", "skills"])
-    job_df  = pd.read_csv(args.jobs, dtype=str, usecols=["job_id", "skills"])
+    cand_df = pd.read_csv(args.candidates, dtype=str, usecols=["candidate_id", "skills", "llm_hard_skills",
+                                                               "llm_soft_skills", "llm_programming_languages",
+                                                               "llm_tools_technologies", "llm_certifications"])
+    job_df = pd.read_csv(args.jobs, dtype=str, usecols=["job_id", "skills", "llm_hard_skills",
+                                                        "llm_soft_skills", "llm_programming_languages",
+                                                        "llm_tools_technologies", "llm_certifications"])
 
-    cand_df["skills"] = parse_skills_column(cand_df["skills"])
-    job_df["skills"]  = parse_skills_column(job_df["skills"])
+    if args.use_human_features:
+        cand_df["skills"] = parse_skills_column(cand_df["skills"])
+        job_df["skills"] = parse_skills_column(job_df["skills"])
+        if args.use_llm_features:
+            for x in ["llm_hard_skills", "llm_soft_skills", "llm_programming_languages",
+                      "llm_tools_technologies", "llm_certifications"]:
+                cand_df["skills"] += parse_skills_column(cand_df[x])
+                job_df["skills"] += parse_skills_column(job_df[x])
+    else:
+        cand_df["skills"] = parse_skills_column(cand_df["llm_hard_skills"])
+        job_df["skills"] = parse_skills_column(job_df["llm_hard_skills"])
+        for x in ["llm_soft_skills", "llm_programming_languages", "llm_tools_technologies", "llm_certifications"]:
+            cand_df["skills"] += parse_skills_column(cand_df[x])
+            job_df["skills"] += parse_skills_column(job_df[x])
+    cand_df["skills"] = cand_df["skills"].apply(lambda skills: set(skills))
+    job_df["skills"] = job_df["skills"].apply(lambda skills: set(skills))
 
     cand_skills: Dict[str, set[str]] = dict(zip(cand_df["candidate_id"].astype(str), cand_df["skills"]))
-    job_skills: Dict[str, set[str]]  = dict(zip(job_df["job_id"].astype(str),  job_df["skills"]))
+    job_skills: Dict[str, set[str]] = dict(zip(job_df["job_id"].astype(str), job_df["skills"]))
 
     test_df = pd.read_csv(args.test, dtype=str)
     if "timestamp" not in test_df.columns and "job_offer_opening_date" in test_df.columns:
@@ -92,7 +119,8 @@ def main(argv: Sequence[str] | None = None):
                     sim = len(c_sk & j_sk) / len(c_sk | j_sk)
                 scores.append(sim)
             # tie-break: more skills (union size) first, then id
-            ranking = [j for _, j in sorted(zip(scores, all_jobs), key=lambda t: (-t[0], -len(c_sk | job_skills[t[1]]), t[1]))]
+            ranking = [j for _, j in
+                       sorted(zip(scores, all_jobs), key=lambda t: (-t[0], -len(c_sk | job_skills[t[1]]), t[1]))]
             output[json.dumps([cand, ts])] = ranking
     else:
         all_cands = list(cand_skills.keys())
@@ -106,7 +134,8 @@ def main(argv: Sequence[str] | None = None):
                 else:
                     sim = len(c_sk & j_sk) / len(c_sk | j_sk)
                 scores.append(sim)
-            ranking = [c for _, c in sorted(zip(scores, all_cands), key=lambda t: (-t[0], -len(job_skills[job] | cand_skills[t[1]]), t[1]))]
+            ranking = [c for _, c in sorted(zip(scores, all_cands),
+                                            key=lambda t: (-t[0], -len(job_skills[job] | cand_skills[t[1]]), t[1]))]
             output[json.dumps([job, ts])] = ranking
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

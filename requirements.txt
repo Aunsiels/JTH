@@ -1,3 +1,9 @@
+pydantic
+ollama
+pandas
+numpy
+tqdm
 pandas
 scikit-learn
-torch
+shap
+matplotlib

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
 from pathlib import Path
@@ -58,6 +59,9 @@ def load_column(path: Path, col: str) -> List[str]:
 
 def main(argv: Sequence[str] | None = None) -> None:
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
     random.seed(args.seed)
 
     candidates = load_column(args.candidates, "candidate_id")

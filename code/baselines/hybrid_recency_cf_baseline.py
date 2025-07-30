@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Sequence
@@ -123,6 +124,9 @@ def load_dates(path: Path, id_col: str) -> Dict[str, pd.Timestamp]:
 
 def main(argv: Sequence[str] | None = None):
     args = parse_args(argv)
+    if os.path.isfile(args.out):
+        print("Output file already exists:", args.out)
+        exit(1)
     max_age = pd.Timedelta(days=args.max_age)
 
     cand_dates = load_dates(args.candidates, "candidate_id")
