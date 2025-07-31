@@ -5,29 +5,146 @@
 ### • Overview
 
 JTH (Job Tracking History) is a real-world corpus for research on time-aware job recommendation.
-It links **38 424 candidates**, **6 199 vacancies** and **45 546 interaction trajectories** collected by professional recruiters in France (2018 – 2025).  Each entity carries rich, English-language attributes; every event in the hiring funnel is time-stamped at day granularity.  Data are pseudonymised and licensed for **non-commercial research** under **CC BY-NC 4.0**.
+It links **37,554 candidates**, **6,011 vacancies** and **42,288 interaction trajectories** collected by professional recruiters in France (2018 – 2025).  Each entity carries rich, English-language attributes; every event in the hiring funnel is time-stamped at day granularity.  Data are pseudonymised and licensed for **non-commercial research** under **CC BY-NC 4.0**.
 
 ---
 
 ### • Files & Sizes (CSV UTF-8)
 
-| file             | rows   | size   | key columns                            |
-| ---------------- | ------ | ------ | -------------------------------------- |
-| `candidates.csv` | 38 424 | 11 MB  | `candidate_id`, profile fields         |
-| `jobs.csv`       | 6 199  | 1.3 MB | `job_id`, vacancy fields               |
-| `history.csv`    | 45 546 | 2.3 MB | `candidate_id`, `job_id`, funnel dates |
+| file             | rows   | size   | description                                           |
+| ---------------- | ------ | ------ | ----------------------------------------------------- |
+| `candidates.csv` | 37,554 | 19 MB  | static profile of each applicant                      |
+| `jobs.csv`       | 6,011  | 2.3 MB | static profile of each vacancy                        |
+| `history.csv`    | 42,288 | 2.7 MB | full, ordered timeline of every candidate–job process |
 
 ---
 
-### • Column Schema (abridged)
+### Schema
 
-*Candidates* – `candidate_id`, `create_date`, `skills` (semicolon list, `_rare_skill_` sentinel), `expertise_area`, `job_category`, `years_experience`, `actual_salary`, `actual_daily_salary`, `contract_type`, `zipcode` (two-digit French département code), `source`, `languages`, `hobbies` (`_rare_hobby_` sentinel), `sex` (LLM-inferred).
+#### `candidates.csv`
 
-*Jobs* – `job_id`, `create_date`, `job_category`, `skills`, `contract_type`, `expertise_area`, `years_experience`, `zipcode`, `salary`, `daily_rate`, `source`, `business_sector`.
+| column                              | type              | notes                                                                 |
+| ----------------------------------- | ----------------- | --------------------------------------------------------------------- |
+| `candidate_id`                      | `str`             | deterministic hash                                                    |
+| `create_date`                       | `YYYY-MM-DD`      | profile creation date                                                 |
+| `skills`                            | `str`             | semicolon list of manual skills; `_rare_skill_` sentinel for infrequent ones |
+| `expertise_area`                   | `str`             | manual area(s) of expertise; semicolon list                          |
+| `job_category`                      | `str`             | manual job category(ies); semicolon list                             |
+| `years_experience`                 | `str` or `NaN`    | binned: `0-2 years`, `3-6 years`, `+6 years`                          |
+| `actual_salary`                     | `float` €         | manually entered; µ-aggregated + Laplace noise                       |
+| `actual_daily_salary`              | `float` €         | same as above                                                         |
+| `contract_type`                     | `str`             | semicolon list (e.g. `Permanent;Freelance`)                          |
+| `zipcode`                           | `str`             | French département code (2-digit)                                     |
+| `source`                            | `str`             | acquisition channel, anonymized                                      |
 
-*History* – `candidate_id`, `job_id`, `spontaneous_application_date`, `shortlist_date`, `qualification_date`, `resume_sent_to_company_date`, `1st_interview_date` … `4th_interview_date`, `job_offer_proposed_date`, `job_offer_accepted_date`, `end_of_process_date`, `last_stage_reached`.
+**LLM-Inferred Fields:**
 
-Full field descriptions are in the repo README.
+| column                              | type              | notes                                                                 |
+| ----------------------------------- | ----------------- | --------------------------------------------------------------------- |
+| `llm_sex`                            | `str`             | inferred sex (`Male`, `Female`)                                       |
+| `llm_nationality`                   | `str`             | inferred nationality; `_rare_nationality_` for infrequent items       |
+| `llm_languages_spoken`             | `str`             | inferred list                                                         |
+| `llm_highest_diploma`              | `str`             | e.g. `Bachelor`, `Master`, `PhD`                                      |
+| `llm_from_top_university`          | `bool`            | top institution indicator                                              |
+| `llm_multiple_degrees`             | `bool`            | whether has multiple diplomas                                         |
+| `llm_ongoing_education`            | `bool`            | whether still studying                                                 |
+| `llm_years_of_work_experience`     | `str`             | binned years: e.g. `2-5`, `10-15`                                      |
+| `llm_number_of_previous_positions` | `int`             | count of prior jobs                                                    |
+| `llm_number_of_unique_employers`   | `int`             | count of distinct employers                                            |
+| `llm_management_experience`        | `bool`            | management role experience                                             |
+| `llm_years_of_management_roles`    | `str`             | binned, e.g. `0-2`, `10-15`                                            |
+| `llm_industry_domains`             | `str`             | semicolon list of industry sectors                                     |
+| `llm_entrepreneurial_experience`   | `bool`            | entrepreneurship indicator                                             |
+| `llm_startup_experience`           | `bool`            | startup background indicator                                           |
+| `llm_large_company_experience`     | `bool`            | large company background indicator                                     |
+| `llm_freelance_experience`         | `bool`            | freelance experience                                                   |
+| `llm_contract_experience`          | `bool`            | contract job experience                                                |
+| `llm_international_work_experience`| `bool`            | worked internationally                                                 |
+| `llm_remote_work_experience`       | `bool`            | remote work history                                                    |
+| `llm_average_job_duration_months`  | `str`             | binned duration (e.g. `12-24`)                                         |
+| `llm_number_of_career_gaps`        | `int`             | number of gaps                                                         |
+| `llm_leadership_experience`        | `bool`            | leadership role experience                                             |
+| `llm_hard_skills`                  | `str`             | inferred hard skills list                                              |
+| `llm_soft_skills`                  | `str`             | inferred soft skills list                                              |
+| `llm_programming_languages`        | `str`             | inferred programming languages                                         |
+| `llm_tools_technologies`           | `str`             | inferred tools used                                                    |
+| `llm_certifications`               | `str`             | inferred certifications list                                           |
+| `llm_volunteer_experience`         | `bool`            | volunteer activity                                                     |
+| `llm_has_publications`             | `bool`            | publication record                                                     |
+| `llm_has_patents`                  | `bool`            | patent record                                                          |
+| `llm_has_portfolio_or_github_or_website` | `bool`       | visible portfolio presence                                             |
+| `llm_has_linkedin`                 | `bool`            | contains LinkedIn link                                                 |
+| `llm_participated_in_competitions` | `bool`            | e.g. Kaggle, hackathons                                                |
+| `llm_hobbies`                      | `str`             | inferred hobbies list                                                  |
+| `llm_expertise_area`               | `str`             | inferred area(s) of expertise                                          |
+| `llm_job_category`                 | `str`             | inferred job category(ies)                                             |
+| `llm_estimated_salary_eur_per_year`| `float` €         | estimated annual salary                                                |
+| `llm_client_facing_role`           | `bool`            | customer-facing role experience                                        |
+| `llm_values`                       | `str`             | inferred personal values                                               |
+| `llm_seniority_level`              | `str`             | `Intern`, `Junior`, `Mid`, `Senior`                                   |
+| `llm_age_bucket`                   | `str`             | e.g. `30-40`, `40-50`, `>=70`                                          |
+| `llm_graduation_recency`          | `str`             | time since last graduation, binned                                     |
+
+
+#### `jobs.csv`
+
+| column                             | type              | notes                                                              |
+| ---------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `job_id`                           | `str`             | deterministic hash                                                 |
+| `create_date`                      | `YYYY-MM-DD`      | job creation date                                                  |
+| `expertise_area`                  | `str`             | manual expertise area(s); semicolon list                          |
+| `job_category`                     | `str`             | manual job category(ies); semicolon list                          |
+| `skills`                           | `str`             | manual skills list; `_rare_skill_` sentinel                        |
+| `contract_type`                    | `str`             | e.g. `Permanent`, `Freelance`                                     |
+| `years_experience`                | `str` or `NaN`    | binned: `0-2`, `3-6`, `+6 years`                                   |
+| `zipcode`                          | `str`             | département code; may be empty                                     |
+| `salary`                           | `float` €         | manually entered                                                   |
+| `daily_rate`                       | `float` €         | manually entered                                                   |
+| `source`                           | `str`             | anonymized source code                                             |
+
+**LLM-Inferred Fields:**
+
+| column                             | type              | notes                                                              |
+| ---------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `llm_remote_possible`              | `bool`            | remote option                                                       |
+| `llm_industry_domains`            | `str`             | sector list                                                         |
+| `llm_company_values`              | `str`             | inferred company values                                             |
+| `llm_seniority_level`             | `str`             | e.g. `Mid`, `Senior`                                                |
+| `llm_salary_estimation_eur_per_year` | `float` €       | inferred                                                            |
+| `llm_required_languages_spoken`   | `str`             | required spoken languages                                           |
+| `llm_required_lowest_diploma`     | `str`             | e.g. `Bachelor`, `PhD`                                              |
+| `llm_required_years_of_work_experience` | `int`        | required years                                                      |
+| `llm_required_management_experience` | `bool`          | boolean                                                             |
+| `llm_is_startup`                  | `bool`            | startup flag                                                        |
+| `llm_is_large_company`            | `bool`            | large company flag                                                  |
+| `llm_required_freelance_experience` | `bool`           | boolean                                                             |
+| `llm_required_contract_experience` | `bool`           | boolean                                                             |
+| `llm_required_international_work_experience` | `bool`   | boolean                                                             |
+| `llm_required_leadership_experience` | `bool`         | boolean                                                             |
+| `llm_hard_skills`                 | `str`             | required hard skills                                                |
+| `llm_soft_skills`                 | `str`             | required soft skills                                                |
+| `llm_programming_languages`       | `str`             | required programming languages                                      |
+| `llm_tools_technologies`          | `str`             | required tools                                                      |
+| `llm_certifications`              | `str`             | required certifications                                             |
+| `llm_expertise_area`             | `str`             | inferred areas of expertise                                         |
+| `llm_job_category`               | `str`             | inferred job category(ies)                                          |
+| `llm_client_facing_role`          | `bool`            | client-facing role indicator                                        |
+
+
+#### `history.csv`
+
+Each row = one candidate–job pair.
+
+| column                                                | type                  | meaning                         |
+| ----------------------------------------------------- | --------------------- | ------------------------------- |
+| `candidate_id` / `job_id`                             | `str`                 | foreign keys                    |
+| `spontaneous_application_date` … `4th_interview_date` | `YYYY-MM-DD` \| `NaN` | chronological funnel steps      |
+| `job_offer_proposed_date` / `job_offer_accepted_date` | `YYYY-MM-DD` \| `NaN` | final outcome                   |
+| `end_of_process_date`                                 | `YYYY-MM-DD`          | last recorded action            |
+| `last_stage_reached`                                  | `str`                 | label of deepest non-null stage |
+
+All dates are in UTC, anonymised with Laplace noise (± ≤ 2 days, order preserved).
+
 
 ---
 
@@ -84,11 +201,4 @@ Dataset meets k = 5 anonymity on {zipcode, experience bucket, contract type}, bu
 
 ### • Resources
 
-* **Code & documentation:** [https://github.com/Aunsiels/JTH](https://github.com/Aunsiels/JTH)
-* **Dataset download (ZIP, 15 MB):** XXX (DOI XXX)
-
----
-
-### • Maintainer
-
-[julien.romero@telecom-sudparis.eu](mailto:julien.romero@telecom-sudparis.eu)
+* **Dataset download (ZIP, 24 MB):** XXX (DOI XXX)

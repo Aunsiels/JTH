@@ -10,9 +10,7 @@ JTH contains five years (2018-01 → 2025-04) of real-world recruitment data col
 It links **37,554 candidates**, **6,011 vacancies** and **42,288 multi-stage application traces**, each time-stamped at **day** granularity.
 All records are pseudonymised and released for **non-commercial research** under **CC BY-NC 4.0**.
 
-* **Home page / code**   [https://github.com/Aunsiels/JTH](https://github.com/Aunsiels/JTH)
 * **Download (zip, 24 MB)**   `XXX`   (DOI coming)
-* **Contact**   [julien.romero@telecom-sudparis.eu](mailto:julien.romero@telecom-sudparis.eu)
 
 ---
 
@@ -302,7 +300,7 @@ Commercial exploitation or any attempt to re-identify individuals or companies i
 ```bibtex
 @misc{XXX2025jth,
   title  = {JTH: A Dataset for Evaluating Cold-Start and Temporal Dynamics in Job Recommendation},
-  author = {Millet, Yann and Behar, {\'E}ric and Romero, Julien},
+  author = {Anon.},
   year   = {2025},
   note   = {Dataset v1.0, June 2025}
 }
