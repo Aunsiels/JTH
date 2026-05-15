@@ -34,6 +34,8 @@ from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
 import pandas as pd
+import gzip
+import pickle
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -94,12 +96,19 @@ def main(argv: Sequence[str] | None = None) -> None:
         key = json.dumps([query_id, ts])
         ranked_list = target_pool.copy()
         random.shuffle(ranked_list)
-        output[key] = ranked_list
+        output[key] = ranked_list[:1000]
 
     # Save -------------------------------------------------------------------
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(output, fh, ensure_ascii=False)
+    is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+    open_func = gzip.open if args.out.suffix == ".gz" else open
+    mode = "wb" if is_pickle else "wt"
+    kwargs = {} if is_pickle else {"encoding": "utf-8"}
+    with open_func(args.out, mode, **kwargs) as fh:
+        if is_pickle:
+            pickle.dump(output, fh)
+        else:
+            json.dump(output, fh, ensure_ascii=False)
 
     print(f"Random baseline written: {args.out}  (queries: {len(output)})")
 

@@ -42,6 +42,8 @@ from pathlib import Path
 from typing import Dict, List, Sequence
 
 import pandas as pd
+import gzip
+import pickle
 
 # ---------------------------------------------------------------------------
 # CF state (re‑used from previous cosine implementation)
@@ -172,7 +174,7 @@ def main(argv: Sequence[str] | None = None):
                         stale.append((score, jid))
                 fresh_sorted = [j for _, j in sorted(fresh, key=lambda t: (-t[0], j))]
                 stale_sorted = [j for _, j in sorted(stale, key=lambda t: (-t[0], j))]
-                output[json.dumps([cand, now.strftime("%Y-%m-%d")])] = fresh_sorted + stale_sorted
+                output[json.dumps([cand, now.strftime("%Y-%m-%d")])] = (fresh_sorted + stale_sorted)[:1000]
         else:  # j2c
             for job in grp["job_id"].astype(str):
                 seen = state.job_cands.get(job, set())
@@ -190,7 +192,7 @@ def main(argv: Sequence[str] | None = None):
                         stale.append((score, cid))
                 fresh_sorted = [c for _, c in sorted(fresh, key=lambda t: (-t[0], t[1]))]
                 stale_sorted = [c for _, c in sorted(stale, key=lambda t: (-t[0], t[1]))]
-                output[json.dumps([job, now.strftime("%Y-%m-%d")])] = fresh_sorted + stale_sorted
+                output[json.dumps([job, now.strftime("%Y-%m-%d")])] = (fresh_sorted + stale_sorted)[:1000]
 
         # update CF state with this batch
         for c, j in zip(grp["candidate_id"].astype(str), grp["job_id"].astype(str)):
@@ -199,8 +201,15 @@ def main(argv: Sequence[str] | None = None):
             all_jobs.add(j)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(output, fh, ensure_ascii=False)
+    is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+    open_func = gzip.open if args.out.suffix == ".gz" else open
+    mode = "wb" if is_pickle else "wt"
+    kwargs = {} if is_pickle else {"encoding": "utf-8"}
+    with open_func(args.out, mode, **kwargs) as fh:
+        if is_pickle:
+            pickle.dump(output, fh)
+        else:
+            json.dump(output, fh, ensure_ascii=False)
 
     print(f"Hybrid recency‑filtered CF written: {args.out} (queries: {len(output)})")
 

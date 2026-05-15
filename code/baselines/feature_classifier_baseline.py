@@ -23,6 +23,7 @@ python feature_classifier_baseline.py CANDIDATES.csv JOBS.csv \
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import math
 import os
@@ -39,6 +40,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
+import pickle
 
 
 # ---------------------------------------------------------------------------
@@ -552,12 +554,20 @@ def main(argv: Sequence[str] | None = None):
             df_test = pd.DataFrame(np.asarray(feats, float), columns=FEATURE_NAMES)
             df_test = df_test.drop(features_to_drop, axis=1)
             scores = pipe.predict_proba(df_test)[:, 1]
-            ranking = [tid for _, tid in sorted(zip(scores, tgt_ids), key=lambda t: -t[0])]
-            out[json.dumps([query_id, ts.strftime("%Y-%m-%d")])] = ranking
+            ranking = [int(tid) if tid.lstrip('-').isdigit() else tid for _, tid in sorted(zip(scores, tgt_ids), key=lambda t: -t[0])]
+            q_id = int(query_id) if query_id.lstrip('-').isdigit() else query_id
+            out[json.dumps([q_id, ts.strftime("%Y-%m-%d")])] = ranking[:1000]
 
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.out, "w", encoding="utf-8") as fh:
-            json.dump(out, fh, ensure_ascii=False)
+        is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+        open_func = gzip.open if args.out.suffix == ".gz" else open
+        mode = "wb" if is_pickle else "wt"
+        kwargs = {} if is_pickle else {"encoding": "utf-8"}
+        with open_func(args.out, mode, **kwargs) as fh:
+            if is_pickle:
+                pickle.dump(out, fh)
+            else:
+                json.dump(out, fh, ensure_ascii=False)
 
         print(f"Feature classifier baseline written: {args.out} ({len(out)} queries)")
 

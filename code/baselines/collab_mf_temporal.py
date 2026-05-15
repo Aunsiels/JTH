@@ -42,6 +42,9 @@ from typing import Dict, List, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
+import gzip
+import pickle
+
 
 # ---------------------------------------------------------------------------
 # Matrix‑factorisation model (implicit SGD)
@@ -170,13 +173,13 @@ def main(argv: Sequence[str] | None = None):
             for c_id in cand_list:
                 scores = mf.score_items_for_user(c_id, all_items_sorted)
                 ranking = [iid for _, iid in sorted(zip(scores, all_items_sorted), key=lambda t: -t[0])]
-                output[json.dumps([c_id, ts.strftime("%Y-%m-%d")])] = ranking
+                output[json.dumps([c_id, ts.strftime("%Y-%m-%d")])] = ranking[:1000]
         else:
             all_users_sorted = sorted(all_cands)
             for j_id in job_list:
                 scores = mf.score_users_for_item(j_id, all_users_sorted)
                 ranking = [uid for _, uid in sorted(zip(scores, all_users_sorted), key=lambda t: -t[0])]
-                output[json.dumps([j_id, ts.strftime("%Y-%m-%d")])] = ranking
+                output[json.dumps([j_id, ts.strftime("%Y-%m-%d")])] = ranking[:1000]
 
         # --- Incremental update with this batch ---
         batch_inter = list(zip(cand_list, job_list))
@@ -184,8 +187,15 @@ def main(argv: Sequence[str] | None = None):
 
     # Save predictions
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(output, fh, ensure_ascii=False)
+    is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+    open_func = gzip.open if args.out.suffix == ".gz" else open
+    mode = "wb" if is_pickle else "wt"
+    kwargs = {} if is_pickle else {"encoding": "utf-8"}
+    with open_func(args.out, mode, **kwargs) as fh:
+        if is_pickle:
+            pickle.dump(output, fh)
+        else:
+            json.dump(output, fh, ensure_ascii=False)
 
     print(f"Temporal MF baseline written: {args.out}  (queries: {len(output)})")
 

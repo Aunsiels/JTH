@@ -42,9 +42,11 @@ python collab_cf_temporal.py TRAIN.csv TEST.csv OUT.json --mode c2j --seed 42
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import math
 import os.path
+import pickle
 import random
 from collections import defaultdict
 from pathlib import Path
@@ -181,11 +183,11 @@ def main(argv: Sequence[str] | None = None):
         if args.mode == "c2j":
             for cand, job in zip(group["candidate_id"].astype(str), group["job_id"].astype(str)):
                 ranking = state.recommend_jobs_for(cand, all_jobs)
-                output[json.dumps([cand, ts.strftime("%Y-%m-%d")])] = ranking
+                output[json.dumps([cand, ts.strftime("%Y-%m-%d")])] = ranking[:1000]
         else:  # j2c
             for cand, job in zip(group["candidate_id"].astype(str), group["job_id"].astype(str)):
                 ranking = state.recommend_cands_for(job, all_cands)
-                output[json.dumps([job, ts.strftime("%Y-%m-%d")])] = ranking
+                output[json.dumps([job, ts.strftime("%Y-%m-%d")])] = ranking[:1000]
         # --- update state with these interactions ---
         for cand, job in zip(group["candidate_id"].astype(str), group["job_id"].astype(str)):
             state.add_interaction(cand, job)
@@ -196,8 +198,15 @@ def main(argv: Sequence[str] | None = None):
 
     # Save
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(output, fh, ensure_ascii=False)
+    is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+    open_func = gzip.open if args.out.suffix == ".gz" else open
+    mode = "wb" if is_pickle else "wt"
+    kwargs = {} if is_pickle else {"encoding": "utf-8"}
+    with open_func(args.out, mode, **kwargs) as fh:
+        if is_pickle:
+            pickle.dump(output, fh)
+        else:
+            json.dump(output, fh, ensure_ascii=False)
 
     print(f"Collaborative CF baseline written: {args.out}  (queries: {len(output)})")
 

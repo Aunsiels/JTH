@@ -33,9 +33,11 @@ import argparse
 import json
 import os
 from pathlib import Path
+import pickle
 from typing import Dict, List, Sequence
 
 import pandas as pd
+import gzip
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +123,7 @@ def main(argv: Sequence[str] | None = None):
             # tie-break: more skills (union size) first, then id
             ranking = [j for _, j in
                        sorted(zip(scores, all_jobs), key=lambda t: (-t[0], -len(c_sk | job_skills[t[1]]), t[1]))]
-            output[json.dumps([cand, ts])] = ranking
+            output[json.dumps([cand, ts])] = ranking[:1000]
     else:
         all_cands = list(cand_skills.keys())
         for job, ts in zip(test_df["job_id"].astype(str), test_df["timestamp"].astype(str)):
@@ -136,11 +138,18 @@ def main(argv: Sequence[str] | None = None):
                 scores.append(sim)
             ranking = [c for _, c in sorted(zip(scores, all_cands),
                                             key=lambda t: (-t[0], -len(job_skills[job] | cand_skills[t[1]]), t[1]))]
-            output[json.dumps([job, ts])] = ranking
-
+            output[json.dumps([job, ts])] = ranking[:1000]
+        
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(output, fh, ensure_ascii=False)
+    is_pickle = args.out.name.endswith(".pkl") or args.out.name.endswith(".pkl.gz")
+    open_func = gzip.open if args.out.suffix == ".gz" else open
+    mode = "wb" if is_pickle else "wt"
+    kwargs = {} if is_pickle else {"encoding": "utf-8"}
+    with open_func(args.out, mode, **kwargs) as fh:
+        if is_pickle:
+            pickle.dump(output, fh)
+        else:
+            json.dump(output, fh, ensure_ascii=False)
 
     print(f"Jaccard baseline written: {args.out}  (queries: {len(output)})")
 
