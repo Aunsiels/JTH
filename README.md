@@ -13,7 +13,7 @@ This dataset serves as the official artifact for the **RecSys 2026** paper: *JTH
 
 All records are rigorously pseudonymised (incorporating k=5 anonymity for quasi-identifiers, clipping extreme numerical outliers at the 95th percentile, and applying a 5-day Laplace noise to timestamps) and released for **non-commercial research** under **CC BY-NC 4.0**.
 
-* **Dataset Download (Zenodo)**: [https://zenodo.org/records/20020466](https://zenodo.org/records/20020466)
+* **Dataset Download (Zenodo)**: [https://zenodo.org/records/21390581](https://zenodo.org/records/21390581)
 * **Code Repository**: [https://github.com/Aunsiels/JTH](https://github.com/Aunsiels/JTH)
 * **Paper DOI**: [https://doi.org/10.1145/3773078.3831846](https://doi.org/10.1145/3773078.3831846)
 
